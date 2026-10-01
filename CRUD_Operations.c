@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
 
 struct User {
     int id;
@@ -7,18 +8,30 @@ struct User {
     int age;
 };
 
+int getInt(){
+    char input[100];
+    int value;
+    char extra; //to prevent scenario like 123abc being accepted 
+
+    while(1){
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            return 0;
+        }
+
+        if(sscanf(input, "%d %c", &value, &extra) == 1){
+            return value;
+        }
+        printf("Invalid Input Format. Please enter a valid integer: ");
+    }
+}
+
+
 void createUser() {
     struct User user;
     int found = 0;
 
     printf("Enter user ID: ");
-    scanf("%d", &user.id);
-
-    printf("Enter user name: ");
-    scanf("%49s", user.name);
-
-    printf("Enter user age: ");
-    scanf("%d", &user.age);
+    user.id = getInt();
 
     // Check whether ID already exists
     FILE *fp = fopen("users.txt", "r");
@@ -26,7 +39,7 @@ void createUser() {
     if (fp != NULL) {
         struct User existing;
 
-        while (fscanf(fp, "%d %49s %d",
+        while (fscanf(fp, "%d|%49[^|]|%d",
                       &existing.id,
                       existing.name,
                       &existing.age) == 3) {
@@ -45,6 +58,17 @@ void createUser() {
         return;
     }
 
+    printf("Enter user name: ");
+    fgets(user.name, sizeof(user.name), stdin);
+    user.name[strcspn(user.name, "\n")] = '\0';
+
+    printf("Enter user age: ");
+    user.age = getInt();
+    while(user.age <= 0 || user.age > 100){
+        printf("Please enter a valid age between 1 and 100: ");
+        user.age = getInt();
+    }
+
     // Add new user
     fp = fopen("users.txt", "a");
 
@@ -53,7 +77,7 @@ void createUser() {
         return;
     }
 
-    fprintf(fp, "%d %s %d\n", user.id, user.name, user.age);
+    fprintf(fp, "%d|%s|%d\n", user.id, user.name, user.age);
 
     fclose(fp);
 
@@ -70,7 +94,7 @@ void readUsers() {
 
     struct User user;
 
-    while (fscanf(fp, "%d %49s %d",
+    while (fscanf(fp, "%d|%49[^|]|%d",
                   &user.id,
                   user.name,
                   &user.age) == 3) {
@@ -102,27 +126,32 @@ void updateUser() {
 
     int id;
     printf("Enter user ID to update: ");
-    scanf("%d", &id);
+    id = getInt();
 
     struct User user;
     int found = 0;
 
-    while (fscanf(fp, "%d %49s %d",
+    while (fscanf(fp, "%d|%49[^|]|%d",
                   &user.id,
                   user.name,
                   &user.age) == 3) {
 
         if (user.id == id) {
             printf("Enter new name: ");
-            scanf("%49s", user.name);
+            fgets(user.name, sizeof(user.name), stdin);
+            user.name[strcspn(user.name, "\n")] = '\0';
 
             printf("Enter new age: ");
-            scanf("%d", &user.age);
+            user.age = getInt();
+            while(user.age <= 0 || user.age > 100){
+        printf("Please enter a valid age between 1 and 100: ");
+        user.age = getInt();
+    }
 
             found = 1;
         }
 
-        fprintf(temp, "%d %s %d\n",
+        fprintf(temp, "%d|%s|%d\n",
                 user.id,
                 user.name,
                 user.age);
@@ -131,8 +160,26 @@ void updateUser() {
     fclose(fp);
     fclose(temp);
 
-    remove("users.txt");
-    rename("temp.txt", "users.txt");
+    if(rename("users.txt", "backup.txt") != 0){
+        printf("Error renaming original file!\n");
+        return;
+    }
+
+    if (rename("temp.txt", "users.txt") != 0) {
+        printf("Error replacing temporary file!\n");
+
+        //restore original file
+        if(rename("backup.txt", "users.txt") != 0){
+            printf("Error restoring original file!\n");
+        }
+        return;
+    }
+
+    if (remove("backup.txt") != 0) {
+        printf("Error deleting original file!\n");
+        return;
+    }
+
 
     if (found)
         printf("User updated successfully.\n");
@@ -158,12 +205,12 @@ void deleteUser() {
 
     int id;
     printf("Enter user ID to delete: ");
-    scanf("%d", &id);
+    id = getInt();
 
     struct User user;
     int found = 0;
 
-    while (fscanf(fp, "%d %49s %d",
+    while (fscanf(fp, "%d|%49[^|]|%d",
                   &user.id,
                   user.name,
                   &user.age) == 3) {
@@ -173,7 +220,7 @@ void deleteUser() {
             continue;
         }
 
-        fprintf(temp, "%d %s %d\n",
+        fprintf(temp, "%d|%s|%d\n",
                 user.id,
                 user.name,
                 user.age);
@@ -181,9 +228,27 @@ void deleteUser() {
 
     fclose(fp);
     fclose(temp);
+    
+    if(rename("users.txt", "backup.txt") != 0){
+        printf("Error renaming original file!\n");
+        return;
+    }
 
-    remove("users.txt");
-    rename("temp.txt", "users.txt");
+    if (rename("temp.txt", "users.txt") != 0) {
+        printf("Error replacing temporary file!\n");
+
+        //restore original file
+        if(rename("backup.txt", "users.txt") != 0){
+            printf("Error restoring original file!\n");
+        }
+        return;
+    }
+
+    if (remove("backup.txt") != 0) {
+        printf("Error deleting original file!\n");
+        return;
+    }
+
 
     if (found)
         printf("User deleted successfully.\n");
@@ -202,7 +267,7 @@ int main() {
         printf("5. Exit\n");
 
         printf("Enter your choice: ");
-        scanf("%d", &choice);
+        choice = getInt();
 
         switch (choice) {
             case 1:
