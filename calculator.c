@@ -1,16 +1,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include<stdbool.h>
+
+# define INITIAL_CAPACITY 1000
+
+bool allocate_memory_values(int *vcap, int **ptr){
+    int *temp = realloc(*ptr, sizeof(int) * (*vcap) * 2);
+    if (temp == NULL) {
+        return false;
+    }
+    *vcap *= 2;
+    *ptr = temp;
+    return true;
+}
+
+bool allocate_memory_opr(int *vcap, char **ptr){
+    char *temp = realloc(*ptr, sizeof(char) * (*vcap) * 2);
+    if (temp == NULL) {
+        return false;
+    }
+    *vcap *= 2;
+    *ptr = temp;
+    return true;
+}
+
+bool apply_operator(int a, int b, char op, int *result){
+    if(op == '+')*result = a + b;
+    else if(op == '-')*result = a-b;
+    else if(op == '*')*result = a*b;
+    else{
+        if(b==0){
+            return false;
+        }else *result = a / b;
+    }
+    return true;
+}
 
 int main() {
-    char input[1000];
-    fgets(input, sizeof(input), stdin);
+    char input[INITIAL_CAPACITY];
+    printf("Enter the Expression: ");
+    if(fgets(input, sizeof(input), stdin) == NULL){
+        printf("Error: Failed to read the input");
+        return 0;
+    }
 
-    int *values = malloc(sizeof(int) * 1000);
-    char *opr = malloc(sizeof(char) * 1000);
+    int *values = malloc(sizeof(int) * INITIAL_CAPACITY);
+    char *opr = malloc(sizeof(char) * INITIAL_CAPACITY);
 
-    int vcapacity = 1000;
-    int ocapacity = 1000;
+    if(values == NULL || opr == NULL){
+        printf("Error: Memory allocation Failed");
+        free(values);
+        free(opr);
+        return 0;
+    }
+
+    int vcapacity = INITIAL_CAPACITY;
+    int ocapacity = INITIAL_CAPACITY;
 
     int v = 0;
     int o = 0;
@@ -19,7 +65,7 @@ int main() {
 
     for (int i = 0; input[i] != '\0' && input[i] != '\n'; i++) {
 
-        if (input[i] == ' ')
+        if (isspace((unsigned char)input[i]))
             continue;
 
         // CASE 1: NUMBER
@@ -43,8 +89,12 @@ int main() {
             i--;
 
             if (v == vcapacity) {
-                vcapacity *= 2;
-                values = realloc(values, sizeof(int) * vcapacity);
+                if(!allocate_memory_values(&vcapacity, &values)){
+                    printf("Error: Memory allocation Failed");
+                    free(values);
+                    free(opr);
+                    return 0;
+                }
             }
 
             values[v++] = num;
@@ -68,8 +118,12 @@ int main() {
             if (o == 0) {
 
                 if (o == ocapacity) {
-                    ocapacity *= 2;
-                    opr = realloc(opr, sizeof(char) * ocapacity);
+                    if(!allocate_memory_opr(&ocapacity, &opr)){
+                        printf("Error: Memory allocation Failed");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
                 }
 
                 opr[o++] = input[i];
@@ -80,8 +134,12 @@ int main() {
                      (opr[o - 1] == '+' || opr[o - 1] == '-')) {
 
                 if (o == ocapacity) {
-                    ocapacity *= 2;
-                    opr = realloc(opr, sizeof(char) * ocapacity);
+                    if(!allocate_memory_opr(&ocapacity, &opr)){
+                        printf("Error: Memory allocation Failed");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
                 }
 
                 opr[o++] = input[i];
@@ -101,19 +159,11 @@ int main() {
                     char op = opr[--o];
 
                     int result;
-
-                    if (op == '*') {
-                        result = a * b;
-                    }
-                    else {
-                        if (b == 0) {
-                            printf("Error: Division by zero.\n");
-                            free(values);
-                            free(opr);
-                            return 0;
-                        }
-
-                        result = a / b;
+                    if(!apply_operator(a,b,op, &result)){
+                        printf("Error: Division by zero");
+                        free(values);
+                        free(opr);
+                        return 0;
                     }
 
                     values[v++] = result;
@@ -130,17 +180,23 @@ int main() {
 
                     int result;
 
-                    if (op == '+')
-                        result = a + b;
-                    else
-                        result = a - b;
+                    if(!apply_operator(a,b,op, &result)){
+                        printf("Error: Division by zero");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
 
                     values[v++] = result;
                 }
 
                 if (o == ocapacity) {
-                    ocapacity *= 2;
-                    opr = realloc(opr, sizeof(char) * ocapacity);
+                    if(!allocate_memory_opr(&ocapacity, &opr)){
+                        printf("Error: Memory allocation Failed");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
                 }
 
                 opr[o++] = input[i];
@@ -157,16 +213,22 @@ int main() {
 
                 int result;
 
-                if (op == '+')
-                    result = a + b;
-                else
-                    result = a - b;
+                if(!apply_operator(a,b,op, &result)){
+                        printf("Error: Division by zero");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
 
                 values[v++] = result;
 
                 if (o == ocapacity) {
-                    ocapacity *= 2;
-                    opr = realloc(opr, sizeof(char) * ocapacity);
+                    if(!allocate_memory_opr(&ocapacity, &opr)){
+                        printf("Error: Memory allocation Failed");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
                 }
 
                 opr[o++] = input[i];
@@ -183,25 +245,22 @@ int main() {
 
                 int result;
 
-                if (op == '*') {
-                    result = a * b;
-                }
-                else {
-                    if (b == 0) {
-                        printf("Error: Division by zero.\n");
+                if(!apply_operator(a,b,op, &result)){
+                        printf("Error: Division by zero");
                         free(values);
-                        free(opr);
+                        free(opr);  
                         return 0;
                     }
-
-                    result = a / b;
-                }
 
                 values[v++] = result;
 
                 if (o == ocapacity) {
-                    ocapacity *= 2;
-                    opr = realloc(opr, sizeof(char) * ocapacity);
+                    if(!allocate_memory_opr(&ocapacity, &opr)){
+                        printf("Error: Memory allocation Failed");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
                 }
 
                 opr[o++] = input[i];
@@ -245,25 +304,12 @@ int main() {
 
         int result;
 
-        if (op == '+') {
-            result = a + b;
-        }
-        else if (op == '-') {
-            result = a - b;
-        }
-        else if (op == '*') {
-            result = a * b;
-        }
-        else {
-            if (b == 0) {
-                printf("Error: Division by zero.\n");
-                free(values);
-                free(opr);
-                return 0;
-            }
-
-            result = a / b;
-        }
+        if(!apply_operator(a,b,op, &result)){
+                        printf("Error: Division by zero");
+                        free(values);
+                        free(opr);
+                        return 0;
+                    }
 
         values[v++] = result;
     }
