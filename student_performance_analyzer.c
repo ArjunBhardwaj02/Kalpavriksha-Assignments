@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<ctype.h>
 
 struct Student{
     char name[50];
@@ -27,13 +28,24 @@ char assignGrade(float avgMarks){
     else return 'F';
 }
 
-void displayPattern(char grade){
+//check no. of stars according to grade
+int countStars(char grade){
     int n=0;
-    if(grade == 'A')n=5;
-    else if(grade == 'B')n=4;
-    else if(grade == 'C')n =3;
-    else if(grade == 'D')n = 2;
-    
+    switch(grade){
+        case 'A': n = 5;
+        break;
+        case 'B': n=4;
+        break;
+        case 'C': n=3;
+        break;
+        case 'D': n=2;
+        break;
+        default: n=0;
+    }
+    return n;
+}
+
+void displayPattern(int n){
     for(int i=0;i<n;i++){
         printf("*");
     }
@@ -46,56 +58,103 @@ void printRollno(struct Student * arr, int i, int n){
     printRollno(arr, i+1, n);
 }
 
-
-int main(){
-    //no. of students - use array to store it
+//input number of student
+int numStudent(){
     int n;
-    printf("Enter the No. of Students: ");
-    scanf("%d", &n);
+    char input[100];
+    char extra;
 
-    //check if n is not positive
-    while(n < 1){
-        printf("No. of Students must be greater than or equals to 1\n");
-        printf("Enter the No. of Students: ");
-        scanf("%d", &n);
+    while(1){
+        printf("Enter Number of Students: ");
+        if(fgets(input, sizeof(input), stdin) == NULL){
+            printf("Error Reading the input!");
+            return -1;
+        }
+
+        if(sscanf(input, "%d %c", &n , &extra) != 1){
+            printf("Invalid input! Enter an Integer Only!\n");
+            continue;
+        }
+
+        //validate range
+        if(n < 1 || n > 100){
+            printf("Number of Students must lie between 1 - 100\n");
+            continue;
+        }
+
+        break;
     }
+    return n;
+}
 
-    //check if n is greater than 100
-    while(n>100){
-        printf("No. of Students must be less than or equals to 100\n");
-        printf("Enter the No. of Students: ");
-        scanf("%d", &n);
-    }
-
-    struct Student * arr = malloc(n*sizeof(struct Student));
-    if(arr == NULL){
-        printf("Memory Allocation failed!");
-        free(arr);
+//check marks
+int readMarks(int marks) {
+    if (marks < 0 || marks > 100) {
+        printf("Marks must be between 0 and 100.\n");
         return 0;
     }
-    //input the students into the array
-    for(int i=0;i<n;i++){
-        printf("Enter Rollno%d, Name%d, Marks1, Marks2, Marks3: ", i+1,i+1);
-        scanf("%d %s %d %d %d", &arr[i].rollno, arr[i].name, &arr[i].marks[0], &arr[i].marks[1], &arr[i].marks[2]);
+    return 1;
+}
 
-        //check if rollno entered is less than or equal to 0
-        while(arr[i].rollno < 1){
-            printf("Roll Number should be greater than or equal to 1\n");
-            printf("Enter Roll No.: ");
-            scanf("%d", &arr[i].rollno);
-        }
-
-        //check if marks entered is b/w 0-100
-         while ((arr[i].marks[0] < 0 || arr[i].marks[0] > 100) ||
-               (arr[i].marks[1] < 0 || arr[i].marks[1] > 100) ||
-               (arr[i].marks[2] < 0 || arr[i].marks[2] > 100)) {
-            printf("Marks must be between 0 and 100!\n");
-            printf("Enter Marks again: ");
-            scanf("%d %d %d", &arr[i].marks[0], &arr[i].marks[1], &arr[i].marks[2]);
-        }
+//check name validity
+int validName(char *name){
+    for(int i=0;name[i] != '\0';i++){
+        if(!isalpha((unsigned char) name[i]))return 0;
     }
-    //using an iterative loop to traverse along the array
+    return 1;
+}
+
+
+//input the students
+int inputStudents(struct Student * arr, int n){
+    char input[200];
+    char extra;
     for(int i=0;i<n;i++){
+    while(1){
+        printf("Enter RollNo%d, Name%d, Marks1, Marks2, Marks3: ", i+1, i+1);
+        if(fgets(input, sizeof(input), stdin) == NULL){
+            printf("Error Taking input!");
+            return 0;
+        }
+
+        
+        if(sscanf(input, "%d %49s %d %d %d %c", &arr[i].rollno, arr[i].name, &arr[i].marks[0], &arr[i].marks[1], &arr[i].marks[2], &extra) != 5){
+            printf("Enter all 5 fields correctly!\n");
+            continue;
+        }
+
+        if(!validName(arr[i].name)){
+            printf("Invalid Name! Use alphbetic Characters only.\n");
+            continue;
+        }
+
+        if(arr[i].rollno < 1){
+            printf("Roll Number must be atleast 1.\n");
+            continue;
+        }
+
+        int valid = 1;
+
+        for (int j = 0; j < 3; j++) {
+            if (!readMarks(arr[i].marks[j])) {
+                valid = 0;
+                break;
+         }
+        }
+
+        if (!valid) {
+            printf("Please re-enter all five fields.\n");
+            continue;
+        }       
+        
+            break;
+    }
+}
+    return 1;
+}
+
+void displayStudentReport(struct Student * arr, int n){
+        for(int i=0;i<n;i++){
         //print details
         printf("\nRoll No.: %d\nName: %s", arr[i].rollno, arr[i].name);
 
@@ -110,13 +169,35 @@ int main(){
         printf("\nGrade: %c", grade);
         //display the pattern
         if(avgmarks < 35){
-        printf("Student's average below 35, so no pattern print!\n");
+        printf("\nStudent's average below 35, so no pattern print!\n");
         continue;
         }
+        int numStars = countStars(grade);
         printf("\nPerformance Pattern: ");
-        displayPattern(grade);
+        displayPattern(numStars);
         printf("\n");
     }
+}
+
+int main(){
+    //no. of students - use array to store it
+    int n = numStudent();
+    if(n == -1)return 0;
+
+    struct Student * arr = malloc(n*sizeof(*arr));
+    if(arr == NULL){
+        printf("Memory Allocation failed!");
+        return 1;
+    }
+    //input the students into the array
+    if(!inputStudents(arr, n)){
+        printf("Error Reading Students Data");
+        free(arr);
+        return 1;
+    }
+
+    //display student report
+    displayStudentReport(arr, n);
 
     //use recursion to print rollnos
     printf("\nList of Roll Numbers: ");
