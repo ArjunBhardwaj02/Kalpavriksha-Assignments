@@ -21,47 +21,87 @@ int getInt(){
     char extra;
     int n;
 
+    while(1){
     if(fgets(input, sizeof(input), stdin) ==NULL){
         printf("Error taking input");
         return -1;
     }
 
+    if(strchr(input, '\n') == NULL){
+        int ch = getchar();
+        if(ch != '\n' && ch != EOF){
+            while((ch= getchar()) != '\n' && ch != EOF);
+            printf("\nInput Too long!");
+            continue;
+        }
+    }
+
     if(sscanf(input, "%d %c", &n , &extra) != 1){
         printf("\nEnter only integer!");
         printf("\nEnter Employee ID: ");
-        return getInt();
+        continue;
+    }
+
+        break;
     }
 
     return n;
 }
 
+void freeEmployees(struct Employee *root){
+    if(root == NULL)return;
+
+    freeEmployees(root->firstReport);
+    freeEmployees(root->nextReport);
+
+    free(root);
+}
+
 int getName(struct Employee *e){
     char input[NAME_SIZE];
-    
+
+    while(1){
     if(fgets(input, sizeof(input), stdin) == NULL){
         printf("Error taking Input");
         return -1;
     }
 
+    if(strchr(input, '\n') == NULL){
+        int ch = getchar();
+        if(ch != '\n' && ch != EOF){
+            while((ch= getchar()) != '\n' && ch != EOF);
+            printf("\nInput Too long!");
+            continue;
+        }
+    }
+    
     input[strcspn(input, "\n")] = '\0';
 
     int found =0;
+    int valid = 1;
 
     for(int i=0; input[i] != '\0'; i++){
         char c = (unsigned char)input[i];
 
         if(!isalpha(c) && !isspace(c)){
-            printf("\nEnter only Letters");
-            printf("\nEnter: ");
-            return getName(e);
+            valid = 0;
+            break;
         } 
         if(!isspace(c))found = 1;
     }
 
+    if(!valid){
+    printf("\nEnter only Letters");
+    printf("\nEnter: ");
+    continue;
+}
+
     if(!found){
         printf("\nString can't be empty!");
-        return getName(e);
+        continue;
     }
+    break;
+}
 
     strcpy(e->name, input);
 
@@ -70,31 +110,49 @@ int getName(struct Employee *e){
 
 int getDesignation(struct Employee *e){
     char input[DEG_SIZE];
-    
+
+    while(1){
     if(fgets(input, sizeof(input), stdin) == NULL){
         printf("Error taking Input");
         return -1;
     }
 
+    if(strchr(input, '\n') == NULL){
+        int ch = getchar();
+        if(ch != '\n' && ch != EOF){
+            while((ch= getchar()) != '\n' && ch != EOF);
+            printf("\nInput Too long!");
+            continue;
+        }
+    }
+
     input[strcspn(input, "\n")] = '\0';
 
     int found =0;
+    int valid = 1;
 
     for(int i=0; input[i] != '\0'; i++){
         char c = (unsigned char)input[i];
 
         if(!isalpha(c) && !isspace(c)){
-            printf("\nEnter only Letters");
-            printf("\nEnter: ");
-            return getDesignation(e);
+            valid = 0;
+            break;
         } 
         if(!isspace(c))found = 1;
     }
 
+    if(!valid){
+    printf("\nEnter only Letters");
+    printf("\nEnter: ");
+    continue;
+}
+
     if(!found){
         printf("\nString can't be empty!");
-        return getDesignation(e);
+        continue;
     }
+    break;
+}
 
     strcpy(e->designation, input);
 
@@ -185,12 +243,6 @@ int addEmployee(struct Employee **root)
         return 0;
     }
 
-    if (manager == newEmployee) {
-        printf("An employee cannot manage themselves!\n");
-        free(newEmployee);
-        return 0;
-    }
-
     newEmployee->manager = manager;
     newEmployee->nextReport = manager->firstReport;
     manager->firstReport = newEmployee;
@@ -251,6 +303,21 @@ void unlinkEmployee(struct Employee **head, struct Employee *target)
 
     unlinkEmployee(&((*head)->nextReport), target);
 }
+
+
+/*
+ * Employee Removal Policy:
+ *
+ * 1. The CEO cannot be removed.
+ * 2. When an employee is removed, their direct reportees
+ *    are transferred to the sibling having the fewest
+ *    direct reportees.
+ * 3. If no sibling exists, the reportees are transferred
+ *    to the removed employee's manager.
+ * 4. The manager pointers of all transferred employees
+ *    are updated accordingly.
+ */
+
 
 int removeEmployee(struct Employee **root, int id){
     //check employee id
@@ -346,15 +413,29 @@ int main(){
         printf("5. Exit\n");
 
         n = getInt();
+
+        if(n == -1){
+            printf("\nInput Ended!");
+            freeEmployees(root);
+            return 0;
+        }
+
         switch(n){
             case 1:{ int a = addEmployee(&root);
-            if(a == -1)return 1;
+            if(a == -1){
+                freeEmployees(root);
+                return 1;
+            }
             else if(a == 0)break;
             break;
             }
             
             case 2: { printf("\nEnter Employee ID to remove: ");
                 int id= getInt();
+                if(id == -1){
+            freeEmployees(root);
+            return 0;
+            }   
             int a= removeEmployee(&root, id);
             if(a==0)break;
             break;
@@ -363,11 +444,17 @@ int main(){
                 int id;
                 printf("\nEnter Employee ID: ");
                 id = getInt();
-                if(id == -1)break;
+                if(id == -1){
+                freeEmployees(root);
+                return 0;
+                }
 
                 struct Employee * e= findEmployee(root, id);
                 if(e == NULL)printf("Employee Not found!");
-                else displayHierarchy(e,0);
+                else{ displayHierarchy(e,0);
+                    int count = countEmployee(e->firstReport);
+                    printf("Total employees reporting under %d: %d\n", e->id, count);
+                }
             break;
             }
             
@@ -375,7 +462,8 @@ int main(){
             displayCompleteHierarchy(root);
             break;
 
-            case 5:
+            case 5: 
+            freeEmployees(root);
             return 0;
 
             default: printf("Enter options from 1 -5 \n");
