@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<time.h>
 
 #define MAXLEN 100
 int getInt(){
@@ -12,12 +13,15 @@ int getInt(){
     {
         if(fgets(input, sizeof(input), stdin) == NULL){
             printf("Error Taking Input!");
-            return 0;
+            return -1;
         }
         if(strchr(input, '\n') == NULL){
             int ch;
-            while((ch = getchar()) != '\n');
+            while((ch = getchar()) != '\n' && ch != EOF);
             printf("\nInput Buffer Overload!!");
+
+            if(ch == EOF)return -1;
+
             continue;
         }
 
@@ -90,9 +94,9 @@ void rotate(int **mat, int n){
     reverse(mat, n);
 }
 
-void applyFilter(int **mat , int n){
+int applyFilter(int **mat , int n){
     if (n == 1) {
-        return;
+        return 1;
     }
 
     int *prev = malloc(n * sizeof(int));
@@ -104,7 +108,7 @@ void applyFilter(int **mat , int n){
         free(prev);
         free(curr);
         free(next);
-        return;
+        return 0;
     }
 
     //current
@@ -156,19 +160,24 @@ void applyFilter(int **mat , int n){
     free(prev);
     free(curr);
     free(next);
+
+    return 1;
 }
 
 int main(){
+    srand(time(NULL));
+
     int n;
     printf("\nEnter integer n: ");
     n = getInt();
-    if(n == 0)return 1;
+    if(n == -1)return 1;
 
     while (n < 2 || n > 10) 
     {
         printf("\nValue of n must lie in range 2 - 10");
         printf("\nEnter n: ");
         n = getInt();
+        if(n == -1)return 1;
     }
     
     int **mat = malloc(n * sizeof(*mat));
@@ -201,7 +210,11 @@ int main(){
     displayMatrix(mat, n);
 
     printf("\nMatrix after applying 3X3 Smoothing filter: \n");
-    applyFilter(mat, n);
+    int a = applyFilter(mat, n);
+    if(!a){
+        freeMatrix(mat ,n);
+        return 1;
+    }
     displayMatrix(mat ,n);
 
     freeMatrix(mat, n);
